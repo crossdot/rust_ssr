@@ -7,16 +7,42 @@
     <script src="https://unpkg.com/vue"></script>
 </head>
 <body class="docs">
-    <div id="app">
-        {{ message }}
+    <div id="app-7">
+        <ol>
+            <todo-item
+                    v-for="item in groceryList"
+                    v-bind:todo="item"
+                    v-bind:key="item.id">
+            </todo-item>
+        </ol>
     </div>
     <script>
-        var app = new Vue({
-            el: '#app',
-            data: {
-                message: 'Hello Vue!'
-            }
+        Vue.component('todo-item', {
+            props: ['todo'],
+            template: '<li>{{ `${todo.id}: ${todo.text}` }}</li>'
         })
+
+        let app7 = new Vue({
+            el: '#app-7',
+            methods: {
+                loadData: function () {
+                    this.groceryList.push({ id: Math.floor(Math.random() * 10000), text: 'asdsadsadasdas asdadsadasd' })
+                },
+                ready: function () {
+                    console.log('ready');
+                    this.loadData();
+                }
+            },
+            data: {
+                groceryList: [
+                    { id: 0, text: 'Vegetables' },
+                    { id: 1, text: 'Cheese' },
+                    { id: 2, text: 'Whatever else humans are supposed to eat' }
+                ]
+            },
+        })
+        app7.ready()
+        console.log(app7.groceryList)
     </script>
 </body>
 </html>
