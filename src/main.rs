@@ -1,32 +1,21 @@
-//! This example shows how to serve static files at specific
-//! mount points, and then delegate the rest of the paths to a router.
-//!
-//! It serves the docs from target/doc at the /docs/ mount point
-//! and delegates the rest to a router, which itself defines a
-//! handler for route /hello
-//!
-//! Make sure to generate the docs first with `cargo doc`,
-//! then build the tests with `cargo run --example router`.
-//!
-//! Visit http://127.0.0.1:3000/hello to view the routed path.
-//!
-//! Visit http://127.0.0.1:3000/docs/mount/ to view the mounted docs.
-
 extern crate iron;
 extern crate mount;
 extern crate router;
 extern crate staticfile;
 extern crate time;
+extern crate rustc_serialize;
 
 use iron::status;
 use iron::{Iron, Request, Response, IronResult};
 use iron::prelude::*;
 use iron::{BeforeMiddleware, AfterMiddleware, typemap};
-use time::precise_time_ns;
+use iron::mime::Mime;
 
+use time::precise_time_ns;
 use mount::Mount;
 use router::Router;
 use staticfile::Static;
+use rustc_serialize::json;
 
 use std::path::Path;
 use std::time::Duration;
@@ -54,9 +43,42 @@ fn say_hello(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "This request was routed!")))
 }
 
+#[derive(RustcDecodable)]
+struct JsonRequest {
+}
+
+#[derive(RustcEncodable, RustcDecodable)]
+struct JsonResponse {
+    response: String,
+    success: bool,
+    error_message: String
+}
+
+impl JsonResponse {
+    fn success(response: String) -> Self {
+        JsonResponse { response: response, success: true, error_message: "".to_string() }
+    }
+
+    fn error(msg: String) -> Self {
+        JsonResponse { response: "".to_string(), success: false, error_message: msg }
+    }
+}
+
 fn main() {
     let mut router = Router::new();
     router
+        .get("/json", |_: &mut Request| {
+            let content_type = "application/json".parse::<Mime>().unwrap();
+            let response = JsonResponse::success("some value".to_string());
+            let out = json::encode(&response).unwrap();
+            Ok(Response::with((content_type, status::Ok, out)))
+        }, "json")
+        .get("/error", |_: &mut Request| {
+            let content_type = "application/json".parse::<Mime>().unwrap();
+            let response = JsonResponse::error("some error occurred".to_string());
+            let out = json::encode(&response).unwrap();
+            Ok(Response::with((content_type, status::Ok, out)))
+        }, "error")
         .get("/hello", say_hello, "hello");
 
     let mut mount = Mount::new();
