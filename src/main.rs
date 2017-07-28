@@ -3,7 +3,10 @@ extern crate mount;
 extern crate router;
 extern crate staticfile;
 extern crate time;
-extern crate rustc_serialize;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 
 use iron::status;
 use iron::{Iron, Request, Response, IronResult};
@@ -15,7 +18,6 @@ use time::precise_time_ns;
 use mount::Mount;
 use router::Router;
 use staticfile::Static;
-use rustc_serialize::json;
 
 use std::path::Path;
 use std::time::Duration;
@@ -43,11 +45,11 @@ fn say_hello(req: &mut Request) -> IronResult<Response> {
     Ok(Response::with((status::Ok, "This request was routed!")))
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct JsonRequest {
 }
 
-#[derive(RustcEncodable, RustcDecodable)]
+#[derive(Serialize, Deserialize)]
 struct JsonResponse {
     response: String,
     success: bool,
@@ -70,13 +72,13 @@ fn main() {
         .get("/json", |_: &mut Request| {
             let content_type = "application/json".parse::<Mime>().unwrap();
             let response = JsonResponse::success("some value".to_string());
-            let out = json::encode(&response).unwrap();
+            let out = serde_json::to_string(&response).unwrap();
             Ok(Response::with((content_type, status::Ok, out)))
         }, "json")
         .get("/error", |_: &mut Request| {
             let content_type = "application/json".parse::<Mime>().unwrap();
             let response = JsonResponse::error("some error occurred".to_string());
-            let out = json::encode(&response).unwrap();
+            let out = serde_json::to_string(&response).unwrap();
             Ok(Response::with((content_type, status::Ok, out)))
         }, "error")
         .get("/hello", say_hello, "hello");
