@@ -7,6 +7,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+#[macro_use]
 extern crate html5ever;
 
 use iron::status;
@@ -159,26 +160,33 @@ fn test_execute() {
 fn parse() -> String {
     use std::default::Default;
 
-    use html5ever::{parse_document, serialize};
+    use html5ever::QualName;
+    use html5ever::{parse_document, parse_fragment};
+    use html5ever::serialize::{SerializeOpts, serialize};
     use html5ever::driver::ParseOpts;
-    use html5ever::rcdom::RcDom;
-    use html5ever::tendril::TendrilSink;
-    use html5ever::tree_builder::TreeBuilderOpts;
 
-    let opts = ParseOpts {
-        tree_builder: TreeBuilderOpts {
-            // drop_doctype: true,
-            ..Default::default()
-        },
-        ..Default::default()
-    };
+    use html5ever::tree_builder::TreeBuilderOpts;
+    use html5ever::rcdom::RcDom;
+    use html5ever::rcdom::NodeData::Element;
+    use html5ever::tendril::{TendrilSink, StrTendril};
+
+    // let opts = ParseOpts {
+    //     tree_builder: TreeBuilderOpts {
+    //         drop_doctype: true,
+    //         ..Default::default()
+    //     },
+    //     ..Default::default()
+    // };
+
     // let stdin = io::stdin();
-    let dom = parse_document(RcDom::default(), opts)
+    // let dom = parse_document(RcDom::default(), opts)
+    let dom = parse_fragment(RcDom::default(), ParseOpts::default(), QualName::new(None, ns!(), local_name!("a")), vec![],)
         .from_utf8()
+        .one("<a><img src=\"some.jpg\"/>link</a>".as_bytes());
         // .from_file("static/index.html")
         // .read_from(&mut stdin.lock())
-        .read_from(&mut "some empty space".as_bytes())
-        .unwrap();
+        // .read_from(&mut "some empty space".as_bytes())
+        // .unwrap();
 
     // The validator.nu HTML2HTML always prints a doctype at the very beginning.
     // io::stdout().write_all(b"<!DOCTYPE html>\n")
@@ -188,6 +196,7 @@ fn parse() -> String {
     let mut bytes = vec![];
     serialize(&mut bytes, &dom.document, Default::default()).unwrap();
     String::from_utf8(bytes).unwrap()
+    // "asd".to_string()
 }
 
 #[test]
