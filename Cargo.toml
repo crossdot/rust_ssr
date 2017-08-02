@@ -4,14 +4,21 @@ name = "iron_ws_test"
 version = "0.1.0"
 
 [dependencies]
+hyper = "0.11.2"
 iron = "~0.5.0"
 mount = "~0.3.0"
 router = "~0.5.0"
 rustc-serialize = "~0.3.0"
+scraper = "0.4.0"
+select = "0.4.2"
 serde = "1.0.11"
 serde_derive = "1.0.11"
 serde_json = "1.0.2"
 time = "~0.1.0"
+
+[dependencies.html5ever]
+features = ["unstable"]
+version = "~0.18.0"
 
 [dependencies.staticfile]
 default-features = false

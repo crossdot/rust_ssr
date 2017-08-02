@@ -7,6 +7,7 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate html5ever;
 
 use iron::status;
 use iron::{Iron, Request, Response, IronResult};
@@ -93,4 +94,145 @@ fn main() {
     chain.link_after(ResponseTime);
 
     Iron::new(chain).http("127.0.0.1:3000").unwrap();
+}
+
+
+#[test]
+fn test01() {
+    let v = vec![10, 0, 2, 2, 41, 15, 61, 2, 2, 0];
+    
+    let mut avg_sum : usize = 0;
+
+    use std::collections::HashMap;
+    let mut mode = HashMap::<usize, usize>::new();
+
+    for &item in &v {
+        avg_sum += item;
+        let mut c = mode.entry(item).or_insert(0);
+        *c += 1;
+    }
+
+    let mode = mode;
+
+    // let mut mode_max = (0, 0);
+    // for (&key, &value) in &mode {
+    //     if value > mode_max.1 {
+    //         mode_max = (key, value);
+    //     }
+    // }
+    let mut mode_max: (&usize, &usize) = (&0, &0);
+    for entry in &mode {
+        if entry.1 > mode_max.1 {
+            mode_max = entry;
+        }
+    }
+
+    println!("{:?} avg: {} median: {} mode: {}", v, avg_sum / v.len(), v[v.len() / 2 as usize], mode_max.0);
+    assert!(true)
+}
+
+fn execute(cmd: &str) -> String {
+    use std::process::Command;
+
+    let output = if cfg!(target_os = "windows") {
+        Command::new("cmd")
+                .args(&["/C", cmd])
+                .output()
+                .expect("failed to execute process")
+    } else {
+        Command::new("sh")
+                .arg("-c")
+                .arg(cmd)
+                .output()
+                .expect("failed to execute process")
+    };
+
+    let hello = output.stdout;
+    String::from_utf8(hello).unwrap()
+}
+
+#[test]
+fn test_execute() {
+    println!("{}", execute("pwd"));
+}
+
+fn parse() -> String {
+    use std::default::Default;
+
+    use html5ever::{parse_document, serialize};
+    use html5ever::driver::ParseOpts;
+    use html5ever::rcdom::RcDom;
+    use html5ever::tendril::TendrilSink;
+    use html5ever::tree_builder::TreeBuilderOpts;
+
+    let opts = ParseOpts {
+        tree_builder: TreeBuilderOpts {
+            // drop_doctype: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    // let stdin = io::stdin();
+    let dom = parse_document(RcDom::default(), opts)
+        .from_utf8()
+        // .from_file("static/index.html")
+        // .read_from(&mut stdin.lock())
+        .read_from(&mut "some empty space".as_bytes())
+        .unwrap();
+
+    // The validator.nu HTML2HTML always prints a doctype at the very beginning.
+    // io::stdout().write_all(b"<!DOCTYPE html>\n")
+        // .ok().expect("writing DOCTYPE failed");
+    // serialize(&mut io::stdout(), &dom.document, Default::default()).expect("serialization failed");
+
+    let mut bytes = vec![];
+    serialize(&mut bytes, &dom.document, Default::default()).unwrap();
+    String::from_utf8(bytes).unwrap()
+}
+
+#[test]
+fn test_parse_document() {
+    println!("{}", parse());
+}
+
+#[test]
+fn test_modify() {
+    use html5ever::{ParseOpts, parse_document};
+    use html5ever::tree_builder::TreeBuilderOpts;
+    use html5ever::rcdom::RcDom;
+    use html5ever::rcdom::NodeData::Element;
+    use html5ever::serialize::{SerializeOpts, serialize};
+    use html5ever::tendril::TendrilSink;
+
+    let opts = ParseOpts {
+        tree_builder: TreeBuilderOpts {
+            drop_doctype: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let data = "<!DOCTYPE html><html><body><a href=\"foo\"></a></body></html>";
+    let dom = parse_document(RcDom::default(), opts)
+        .from_utf8()
+        .read_from(&mut data.as_bytes())
+        .unwrap();
+
+    let html = dom.document.children.borrow();
+    let html = &html[0];
+    let body = html.children.borrow(); // Implicit head element at children[0].
+    let body = &body[1];
+
+    {
+        let a = body.children.borrow();
+        let a = &a[0];
+        if let Element { ref attrs, .. } = a.data {
+            let mut attrs = attrs.borrow_mut();
+            attrs[0].value.push_tendril(&From::from("#anchor"));
+        }
+    }
+
+    let mut bytes = vec![];
+    serialize(&mut bytes, &dom.document, SerializeOpts::default()).unwrap();
+    let result = String::from_utf8(bytes).unwrap();
+    println!("{}", result);
 }
