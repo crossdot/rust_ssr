@@ -157,18 +157,19 @@ fn test_execute() {
     println!("{}", execute("pwd"));
 }
 
+
+use html5ever::QualName;
+use html5ever::{ParseOpts, parse_document, parse_fragment};
+use html5ever::tree_builder::TreeBuilderOpts;
+use html5ever::rcdom::RcDom;
+use html5ever::rcdom::NodeData::Element;
+use html5ever::serialize;
+use html5ever::serialize::{SerializeOpts};
+use html5ever::tendril::{TendrilSink, StrTendril};
+use std::default::Default;
+
 fn parse() -> String {
-    use std::default::Default;
-
-    use html5ever::QualName;
-    use html5ever::{parse_document, parse_fragment};
-    use html5ever::serialize::{SerializeOpts, serialize};
-    use html5ever::driver::ParseOpts;
-
-    use html5ever::tree_builder::TreeBuilderOpts;
-    use html5ever::rcdom::RcDom;
-    use html5ever::rcdom::NodeData::Element;
-    use html5ever::tendril::{TendrilSink, StrTendril};
+    
 
     // let opts = ParseOpts {
     //     tree_builder: TreeBuilderOpts {
@@ -206,12 +207,6 @@ fn test_parse_document() {
 
 #[test]
 fn test_modify() {
-    use html5ever::{ParseOpts, parse_document};
-    use html5ever::tree_builder::TreeBuilderOpts;
-    use html5ever::rcdom::RcDom;
-    use html5ever::rcdom::NodeData::Element;
-    use html5ever::serialize::{SerializeOpts, serialize};
-    use html5ever::tendril::{TendrilSink, StrTendril};
 
     use html5ever::tree_builder::{TreeSink, NodeOrText};
 
@@ -245,6 +240,17 @@ fn test_modify() {
         dom.append(&body, NodeOrText::AppendNode(comment));
     }
 
+    {
+        let mut fragment_dom = parse_fragment(RcDom::default(), ParseOpts::default(), QualName::new(None, ns!(), local_name!("a")), vec![],)
+            .from_utf8()
+            .one("<a>link</a>".as_bytes());
+        let fragment_doc = fragment_dom.get_document();
+        let fragment_html = &fragment_doc.children.borrow()[0];
+        let element = &fragment_html.children.borrow()[0];
+        body.children.borrow_mut().push(element.clone());
+    }
+
+    
     let mut bytes = vec![];
     serialize(&mut bytes, &dom.document, SerializeOpts::default()).unwrap();
     let result = String::from_utf8(bytes).unwrap();
