@@ -217,14 +217,11 @@ fn test_modify() {
         .read_from(&mut data.as_bytes())
         .unwrap();
 
-    let html = dom.document.children.borrow();
-    let html = &html[0];
-    let body = html.children.borrow(); // Implicit head element at children[0].
-    let body = &body[1];
+    let html = &dom.document.children.borrow()[0];
+    let body = &html.children.borrow()[1];
 
     {
-        let a = body.children.borrow();
-        let a = &a[0];
+        let a = &body.children.borrow()[0];
         if let Element { ref attrs, .. } = a.data {
             let mut attrs = attrs.borrow_mut();
             attrs[0].value.push_tendril(&From::from("#anchor"));
