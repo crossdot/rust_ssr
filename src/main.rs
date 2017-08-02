@@ -202,7 +202,7 @@ fn test_modify() {
     use html5ever::rcdom::RcDom;
     use html5ever::rcdom::NodeData::Element;
     use html5ever::serialize::{SerializeOpts, serialize};
-    use html5ever::tendril::{Tendril, TendrilSink, StrTendril};
+    use html5ever::tendril::{TendrilSink, StrTendril};
 
     use html5ever::tree_builder::{TreeSink, NodeOrText};
 
@@ -219,10 +219,11 @@ fn test_modify() {
         .read_from(&mut data.as_bytes())
         .unwrap();
 
+    let doc = dom.get_document();
+    let html = &doc.children.borrow()[0];
+    let body = &html.children.borrow()[1];
+    
     {
-        let html = &dom.document.children.borrow()[0];
-        let body = &html.children.borrow()[1];
-
         let a = &body.children.borrow()[0];
         if let Element { ref attrs, .. } = a.data {
             let mut attrs = attrs.borrow_mut();
@@ -231,8 +232,7 @@ fn test_modify() {
     }
 
     {
-        let comment = dom.create_comment(Tendril::from_slice("ass"));
-        let mut body = dom.get_document();
+        let comment = dom.create_comment(StrTendril::from_slice("ass"));
         dom.append(&body, NodeOrText::AppendNode(comment));
     }
 
