@@ -202,7 +202,9 @@ fn test_modify() {
     use html5ever::rcdom::RcDom;
     use html5ever::rcdom::NodeData::Element;
     use html5ever::serialize::{SerializeOpts, serialize};
-    use html5ever::tendril::TendrilSink;
+    use html5ever::tendril::{Tendril, TendrilSink, StrTendril};
+
+    use html5ever::tree_builder::{TreeSink, NodeOrText};
 
     let opts = ParseOpts {
         tree_builder: TreeBuilderOpts {
@@ -212,20 +214,26 @@ fn test_modify() {
         ..Default::default()
     };
     let data = "<!DOCTYPE html><html><body><a href=\"foo\"></a></body></html>";
-    let dom = parse_document(RcDom::default(), opts)
+    let mut dom = parse_document(RcDom::default(), opts)
         .from_utf8()
         .read_from(&mut data.as_bytes())
         .unwrap();
 
-    let html = &dom.document.children.borrow()[0];
-    let body = &html.children.borrow()[1];
-
     {
+        let html = &dom.document.children.borrow()[0];
+        let body = &html.children.borrow()[1];
+
         let a = &body.children.borrow()[0];
         if let Element { ref attrs, .. } = a.data {
             let mut attrs = attrs.borrow_mut();
             attrs[0].value.push_tendril(&From::from("#anchor"));
         }
+    }
+
+    {
+        let comment = dom.create_comment(Tendril::from_slice("ass"));
+        let mut body = dom.get_document();
+        dom.append(&body, NodeOrText::AppendNode(comment));
     }
 
     let mut bytes = vec![];
